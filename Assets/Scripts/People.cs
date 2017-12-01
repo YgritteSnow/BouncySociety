@@ -25,6 +25,7 @@ public class PeopleData
 		public string name; // 姓名
 		public int id; // 编号
 
+		public normtype Power; // 武力值：在普通战斗中容易胜利
 		public disttype MoveSpeed;	// 运动速度：物理运动速度
 		public normtype Intellect;	// 智力程度：在最佳选择与最差选择之间的插值
 		public timetype EmotionSpeed;	// 反应速度：情感反应速度
@@ -51,7 +52,7 @@ public class PeopleData
 	}
 
 	//[Header("固有性格")]
-	[HideInInspector]
+	//[HideInInspector]
 	public StaticStatistic m_staticStatistic;
 	//[Header("当前状态")]
 	private DynamicStatistic m_dynamicStatistic;
@@ -67,8 +68,12 @@ public class PeopleData
 		m_calculatedStatistic.curious_distance = 2;
 	}
 
-	public timetype cur_madness { get{return m_dynamicStatistic.Madness;} set{m_dynamicStatistic.Madness = value;} }
+	public normtype cur_horrible { get { return m_staticStatistic.Power * (1- m_dynamicStatistic.Madness) + 1 * m_dynamicStatistic.Madness; } }
+	public normtype cur_madness { get { return m_dynamicStatistic.Madness;} set{m_dynamicStatistic.Madness = value;} }
+
 	public Color cur_color { get { return Color.green * (1 - m_dynamicStatistic.Madness) + Color.red * m_dynamicStatistic.Madness; } }
+
+	public string name { get { return m_staticStatistic.name; } }
 	public disttype cur_speed { get { return m_staticStatistic.MoveSpeed; } }
 	public disttype alert_dist { get { return m_calculatedStatistic.alert_distance; } }
 	public disttype safe_dist { get { return m_calculatedStatistic.safe_distance; } }
@@ -106,13 +111,6 @@ public abstract class PeopleFSMState_base
 	public virtual void OnTriggerExit(GameObject target)
 	{
 		m_vec_target.Remove(target);
-
-		string s = "";
-		foreach(var o in m_vec_target)
-		{
-				  s += o.name + ",";
-		}
-		Debug.Log(s);
 	}
 }
 
@@ -135,7 +133,9 @@ public class PeopleFMSState_stand : PeopleFSMState_base
 
 	public override void OnEnterState()
 	{
-		m_obj.m_data.cur_madness = Time.fixedTime % 1;
+		m_obj.m_HUDBoard.ShowTalk(false);
+
+		m_obj.m_data.cur_madness = 0;
 	}
 }
 
@@ -145,7 +145,25 @@ public class PeopleFSMState_flee : PeopleFSMState_base
 
 	public override void Update()
 	{
-		//m_obj.rb.velocity = new Vector3(m_obj.rb.velocity.x, m_obj.m_data.cur_speed, m_obj.rb.velocity.z);
+		m_obj.m_data.cur_madness = Time.fixedTime % 1;
+
+		Vector3 flee_dir = Vector3.zero;
+		Vector3 cur_pos = m_obj.gameObject.transform.position;
+		foreach(GameObject o in m_vec_target)
+		{
+			PeopleData target_data = o.GetComponent<People>().m_data;
+			flee_dir += (cur_pos - o.transform.position) * target_data.cur_horrible;
+		}
+		flee_dir.y = 0;
+		flee_dir.Normalize();
+		flee_dir *= m_obj.m_data.cur_speed;
+
+		//Vector3 old_vel = m_obj.rb.velocity;
+		//old_vel.x = flee_dir.x;
+		//old_vel.z = flee_dir.z;
+		//m_obj.rb.velocity = old_vel;
+
+		m_obj.rb.AddForce(flee_dir);
 	}
 
 	public override PeopleFSMState_base CheckNextState()
@@ -162,7 +180,8 @@ public class PeopleFSMState_flee : PeopleFSMState_base
 
 	public override void OnEnterState()
 	{
-		m_obj.m_data.cur_madness = 1;
+		m_obj.m_HUDBoard.ShowTalk(true);
+		m_obj.m_HUDBoard.SetTalk("Run!!!!!!");
 	}
 }
 
@@ -211,22 +230,37 @@ public class PeopleFSMStateManager
 [RequireComponent(typeof(Rigidbody), typeof(Transform), typeof(Renderer))]
 public class People : MonoBehaviour {
 
-	[UnityEngine.SerializeField]
+	//[UnityEngine.SerializeField]
 	public PeopleData m_data;
+	public GameObject m_HUDBoardObject = null;
+	public HUDBoardEdit m_HUDBoard = null;
 
 	public Renderer rd;
 	public Rigidbody rb;
 
-	void Start()
+	void Awake()
 	{
 		rb = GetComponent<Rigidbody>();
 		rd = GetComponent<Renderer>();
+
+		if (m_HUDBoardObject != null)
+		{
+			GameObject board = GameObject.Instantiate(m_HUDBoardObject);
+			//GameObject board = GameObject.Instantiate(Resources.Load("Prefabs/HUDPlayer") as GameObject);
+			board.GetComponent<HUDBoardPlayer>().target = gameObject.transform;
+			board.gameObject.transform.parent = GameObject.Find("HUD UI Root").transform;
+
+			m_HUDBoard = board.GetComponent<HUDBoardEdit>();
+			m_HUDBoard.SetName(m_data.name);
+		}
 	}
 
-	void Awake()
+	public void SetData(PeopleData info)
 	{
+		m_data = info;
+		m_HUDBoard.SetName(m_data.name);
 	}
-	
+
 	// Update is called once per frame
 	void Update () {
 		ResetColor();

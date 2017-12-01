@@ -38,8 +38,11 @@ public class PeopleAI : MonoBehaviour {
 			m_col_safe.radius = m_obj.m_data.safe_dist;
 		}
 
-		m_state_manager = new PeopleFSMStateManager(m_obj);
-		m_state_manager.Awake();
+		if (m_state_manager == null)
+		{
+			m_state_manager = new PeopleFSMStateManager(m_obj);
+			m_state_manager.Awake();
+		}
 	}
 
 	public void RefreshData()

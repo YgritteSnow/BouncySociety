@@ -217,6 +217,8 @@
     <Compile Include="Assets\Resources\Data\ScriptablePeopleAll.cs" />
     <Compile Include="Assets\Scripts\FollowCamera.cs" />
     <Compile Include="Assets\Scripts\GameManager.cs" />
+    <Compile Include="Assets\Scripts\HUDBoardEdit.cs" />
+    <Compile Include="Assets\Scripts\HUDBoardPlayer.cs" />
     <Compile Include="Assets\Scripts\HostPlayerControl.cs" />
     <Compile Include="Assets\Scripts\People.cs" />
     <Compile Include="Assets\Scripts\PeopleAI.cs" />

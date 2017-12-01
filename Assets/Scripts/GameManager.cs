@@ -71,7 +71,7 @@ public class PeopleObject : PoolData<PeopleData>
 		}
 
 		People pl = obj.GetComponent<People>();
-		pl.m_data = info;
+		pl.SetData(info);
 		PeopleAI ai = obj.GetComponent<PeopleAI>();
 		ai.RefreshData();
 	}
@@ -83,6 +83,7 @@ public class PeopleObject : PoolData<PeopleData>
 #endregion
 
 public class GameManager : MonoBehaviour {
+	public int TestCount = 10;
 
 	public float GameTime = 0;
 	public float GameRectRadiusX = 250;
@@ -104,14 +105,26 @@ public class GameManager : MonoBehaviour {
 
 	// Use this for initialization
 	void Start () {
+		UnityEngine.Camera[] cams = GameObject.FindObjectsOfType<Camera>();
+		foreach (Camera cam in cams)
+		{
+			if(cam.name == "Main Camera")
+			{
+				HUDBoardPlayer.gameCamera = cam;
+			}
+			else
+			{
+				HUDBoardPlayer.uiCamera = cam;
+			}
+		}
+
 		LoadPeopleStock();
 		StartCoroutine(this.CreatePeople());
 	}
 
 	void LoadPeopleStock()
 	{
-		ScriptablePeopleAll.MakePeopleData();
-		ScriptablePeopleAll ass = Resources.Load<ScriptablePeopleAll>("Data/d_people_all") as ScriptablePeopleAll;
+		ScriptablePeopleAll ass = ScriptablePeopleAll.MakePeopleData(TestCount);
 		PeopleStock = ass.m_data;
 	}
 
@@ -120,7 +133,7 @@ public class GameManager : MonoBehaviour {
 		while(!pause){
 			yield return new WaitForSeconds(0.1f);
 
-			if(PeoplePool.Count < 2 && PeoplePool.Count < PeopleStock.Count)
+			if(PeoplePool.Count < TestCount && PeoplePool.Count < PeopleStock.Count)
 			{
 				PeoplePool.CreateElement(PeopleStock[PeoplePool.Count]);
 			}
